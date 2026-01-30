@@ -15,7 +15,12 @@ app.use(express.json({ limit: '1mb' }));
 
 const port = Number.parseInt(process.env.PORT ?? '3001', 10);
 const timeoutMs = Number.parseInt(process.env.TIMEOUT_MS ?? '45000', 10);
+const lighthouseTimeoutMs = Number.parseInt(process.env.LIGHTHOUSE_TIMEOUT_MS ?? '60000', 10);
 const maxConcurrency = Math.max(1, Number.parseInt(process.env.MAX_CONCURRENCY ?? '2', 10));
+const fastMode = (process.env.FAST_MODE ?? 'true').toLowerCase() === 'true';
+const lighthouseEnabled = (process.env.LIGHTHOUSE_ENABLED ?? 'true').toLowerCase() === 'true';
+const cacheTtlMs = Math.max(0, Number.parseInt(process.env.CACHE_TTL_MS ?? '300000', 10));
+const urlCache = new Map<string, { expiresAt: number; result: AuditResult }>();
 const semaphore = new Semaphore(maxConcurrency);
 
 app.get('/api/health', (_req, res) => {
@@ -36,8 +41,24 @@ app.post('/api/audit', async (req, res) => {
 
   const release = await semaphore.acquire();
   try {
-    const result = await runAudit(validation.normalizedUrl, timeoutMs);
+    const cached = urlCache.get(validation.normalizedUrl);
+    if (cached && cached.expiresAt > Date.now()) {
+      res.json(cached.result);
+      return;
+    }
+    const result = await runAudit(validation.normalizedUrl, {
+      timeoutMs,
+      lighthouseTimeoutMs,
+      fastMode,
+      lighthouseEnabled
+    });
     await saveAudit(result);
+    if (cacheTtlMs > 0) {
+      urlCache.set(validation.normalizedUrl, {
+        result,
+        expiresAt: Date.now() + cacheTtlMs
+      });
+    }
     res.json(result);
   } catch (error) {
     console.error('Audit failed:', error);

@@ -40,7 +40,9 @@ The frontend proxies `/api` requests to the backend in dev mode.
 
 - Puppeteer downloads Chromium during `npm install` (make sure your environment allows it).
 - Some environments require additional system dependencies for headless Chrome.
-- Increase `TIMEOUT_MS` in `backend/.env` for slower sites.
+- Increase `TIMEOUT_MS` or `LIGHTHOUSE_TIMEOUT_MS` in `backend/.env` for slower sites.
+- Set `FAST_MODE=true` to speed up audits by skipping heavy resources during the DOM scan.
+- Set `LIGHTHOUSE_ENABLED=false` to skip Lighthouse entirely (still returns heuristic scores).
 
 ## Tests
 
