@@ -11,6 +11,13 @@
 npm-debug.log
 yarn-error.log
 
+# Environment files
+.env
+backend/.env
+
+# Backend data
+/backend/data/*.json
+
 # IDEs and editors
 .idea/
 .project
@@ -38,6 +45,10 @@ yarn-error.log
 testem.log
 /typings
 __screenshots__/
+
+# Workspace build output
+frontend/dist
+backend/dist
 
 # System files
 .DS_Store
